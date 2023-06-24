@@ -5,14 +5,14 @@ Train a GNN classification model on a citation network where nodes represent doc
 Two documents are connected if there exists a citation link between them. The task is to infer the category of each document (40 in total).
 
 ## Description
-In this project, we trained different models trying to achieve best accuracy score over the above task. 
+In this project, we trained different models trying to achieve the best accuracy score over the above task. 
 <br>
 
 This Reopsitory contains the following files:
  
 <ul>
 
-  * `exploration.py` - this holds the code of all data exploration we performed over the train data. 
+  * `exploration.py` - holds the code of all data exploration we performed over the train data. 
   * `dataset.py` - loads the training dataset.
   * `train.py` - creating the different models we tested, performing the training procedure, and plots loss+accuracy graphs.
   * `Final_model.pkl` - our pre-trained model (which produced the best results over validation data).
@@ -27,5 +27,5 @@ This Reopsitory contains the following files:
 
 ### Reproduce results
 #### predict.py
-This will use our best pre-trained model - `Final_model.pkl` to predict the article's category over new data.<br>
+This will use our best pre-trained model - `Final_model.pkl` to predict the article's category over new data and will create a predictions CSV file.<br>
 
