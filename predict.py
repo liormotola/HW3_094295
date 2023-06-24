@@ -15,7 +15,7 @@ def predict():
     data.x = torch.concat((data.x, years), dim=1)
 
     #run model
-    model = torch.load("GAT_years_nisui.pkl")
+    model = torch.load("Final_model.pkl")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     data.to(device)
