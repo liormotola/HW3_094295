@@ -49,13 +49,13 @@ class GAT(torch.nn.Module):
 def train(model, data, optimizer, criterion, num_epochs: int, model_name:str):
     """
     Trains the given model with the given optimizer and loss function for num_epochs epochs.
-    Saves the best model to pickle file called "model2.pkl".
+    Saves the best model to pickle file called model_name.
     :param model: Model to train
-    :param data_sets: Dict where keys are dataset type and values are the corresponding dataset object.
+    :param data: train and validation data. Data object.
     :param optimizer: optimizer to use during training.
     :param criterion: loss function to use during training.
     :param num_epochs: number of training epochs.
-    :param batch_size: batch size
+    :param model_name: name to save the model.
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -84,7 +84,7 @@ def train(model, data, optimizer, criterion, num_epochs: int, model_name:str):
                 loss.backward()
                 optimizer.step()
                 pred = out.argmax(dim=1)
-                correct = pred[data.train_mask] == data.y[data.train_mask]  # Check against ground-truth labels.
+                correct = pred[data.train_mask] == data.y[data.train_mask]
                 acc = int(correct.sum()) / len(data.train_mask)
                 train_loss.append(loss.detach().cpu())
                 train_acc.append(acc)
@@ -93,7 +93,7 @@ def train(model, data, optimizer, criterion, num_epochs: int, model_name:str):
                     out = model(data.x, data.edge_index)
                     loss = criterion(out[data.val_mask], data.y[data.val_mask])
                     pred = out.argmax(dim=1)
-                    correct = pred[data.val_mask] == data.y[data.val_mask]  # Check against ground-truth labels.
+                    correct = pred[data.val_mask] == data.y[data.val_mask]
                     acc = int(correct.sum()) / len(data.val_mask)
                     val_loss.append(loss.detach().cpu())
                     val_acc.append(acc)
@@ -111,33 +111,49 @@ def train(model, data, optimizer, criterion, num_epochs: int, model_name:str):
     return train_loss,train_acc,val_loss,val_acc
 
 
-def plot_graphs(train,validation,title):
+def plot_graphs(train,validation,title,model_name):
+    """
+    generates graphs of train and validation data vs num epochs
+    :param train: list of train data - could be loss/accuracy vals
+    :param validation: list of validation data - could be loss/accuracy vals
+    :param title: plot's title
+    :param model_name: name of model whose values are presented. will be added to the the title
+    """
     plt.plot(train,label="train")
     plt.plot(validation,label= "val")
     plt.xlabel("num epochs")
     plt.ylabel(title)
-    plt.title(title)
+    plt.title(f"{model_name}: {title}")
     plt.legend()
     plt.show()
 
 
-def basic(model,data):
+def basic(model,model_name):
+    """
+    trains the model without publish year as feature + plots loss and accuracy graphs
+    :param model: model to train
+    :param model_name: name to save the model
+    """
     dataset = HW3Dataset(root='data/hw3/')
     data = dataset[0]
     data.y = data.y.squeeze(1)
-    model = GCN(num_features=dataset.num_features, num_classes=dataset.num_classes)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
     train_loss, train_acc, val_loss, val_acc=train(model=model,
                                                   data=data,
                                                   optimizer=optimizer,
                                                   criterion=criterion,
-                                                  num_epochs=500,model_name="basic.pkl")
-    plot_graphs(train_loss,val_loss,title="Loss")
-    plot_graphs(train_acc,val_acc,title="Accuracy")
+                                                  num_epochs=500,model_name=model_name)
+    plot_graphs(train_loss,val_loss, title=f"Loss", model_name=model_name.strip('.pkl'))
+    plot_graphs(train_acc,val_acc, title=f"Accuracy", model_name=model_name.strip('.pkl'))
 
 
-def years(model,data):
+def years(model,model_name):
+    """
+    trains the model with publish year as feature + plots loss and accuracy graphs
+    :param model: model to train
+    :param model_name: name to save the model
+    """
     dataset = HW3Dataset(root='data/hw3/')
     data = dataset[0]
     data.y = data.y.squeeze(1)
@@ -145,37 +161,30 @@ def years(model,data):
     arr_norm = scaler.fit_transform(data.node_year.numpy())
     years = torch.from_numpy(arr_norm).type(dtype=torch.float32)
     data.x = torch.concat((data.x, years), dim=1)
-    model = GCN(num_features=dataset.num_features + 1, num_classes=dataset.num_classes)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
     train_loss, train_acc, val_loss, val_acc = train(model=model,
                                                      data=data,
                                                      optimizer=optimizer,
                                                      criterion=criterion,
-                                                     num_epochs=500, model_name="years500.pkl")
-    plot_graphs(train_loss, val_loss, title="Loss")
-    plot_graphs(train_acc, val_acc, title="Accuracy")
+                                                     num_epochs=500, model_name=model_name)
+    plot_graphs(train_loss, val_loss, title=f"Loss", model_name=model_name.strip('.pkl'))
+    plot_graphs(train_acc, val_acc, title=f"Accuracy", model_name=model_name.strip('.pkl'))
 
 
 if __name__ == '__main__':
     torch.manual_seed(42)
-    # years()
     dataset = HW3Dataset(root='data/hw3/')
-    data = dataset[0]
-    data.y = data.y.squeeze(1)
-    # model = GCN(num_features=dataset.num_features, num_classes=dataset.num_classes)
-    scaler = StandardScaler()
-    arr_norm = scaler.fit_transform(data.node_year.numpy())
-    years = torch.from_numpy(arr_norm).type(dtype=torch.float32)
-    data.x = torch.concat((data.x, years), dim=1)
-    model = GAT(num_features=dataset.num_features+1, num_classes=dataset.num_classes)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+    #exp 1
+    model_1 = GCN(num_features=dataset.num_features, num_classes=dataset.num_classes)
+    basic(model=model_1,model_name= "GCN.pkl")
+    #exp 2 - GCN + years
+    model_2 = GCN(num_features=dataset.num_features + 1, num_classes=dataset.num_classes)
+    years(model=model_2,model_name= "GCN_years.pkl")
+    #exp 3 - GAT
+    model_3 = GAT(num_features=dataset.num_features, num_classes=dataset.num_classes)
+    basic(model=model_3,model_name="GAT.pkl")
+    #exp 4 - GAT + years
+    model_4 = GAT(num_features=dataset.num_features+1, num_classes=dataset.num_classes)
+    years(model=model_4, model_name="GAT_years.pkl")
 
-    criterion = torch.nn.CrossEntropyLoss()
-    train_loss, train_acc, val_loss, val_acc=train(model=model,
-                                                  data=data,
-                                                  optimizer=optimizer,
-                                                  criterion=criterion,
-                                                  num_epochs=500, model_name="GAT_model_years.pkl")
-    plot_graphs(train_loss,val_loss,title="Loss")
-    plot_graphs(train_acc,val_acc,title="Accuracy")
